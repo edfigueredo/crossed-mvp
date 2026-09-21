@@ -1,34 +1,16 @@
-# Evidencia resumida de pruebas
+# Evidencia de pruebas
 
-Verificación realizada el 21/09/2026.
+## Verificaciones ejecutadas antes de la entrega
 
-| Control | Resultado |
-|---|---|
-| Backend `mvn clean verify` con Java 21 | 27 pruebas; 0 fallos; 0 errores |
-| Frontend `npm run build` | compilación de producción correcta |
-| Frontend `npm run typecheck` | TypeScript correcto |
-| `docker compose config --quiet` | configuración válida |
-| `/actuator/health` con Redis real | `UP` |
-| Flujo REST real | creación, registro, permisos, DTO seguro, respuestas, puntaje y cierre correctos |
-| Capacidad | 60 registros y heartbeats concurrentes; número 61 rechazado |
-| WebSocket/STOMP | conexión autenticada y evento `PARTIDA_INICIADA` recibido |
-| Reconstrucción desde ZIP limpio | Maven y Next.js reconstruidos sin `target`, `.next` ni `node_modules` |
-| Fallo SMTP | finalización conservada; estado de correo recuperable |
-| Playwright | prueba incluida; ejecución bloqueada por la política de sockets del contenedor de construcción |
-| Docker Engine | Compose validado; ejecución bloqueada porque el entorno no permite iniciar el daemon |
+- `mvn clean verify`: suite del backend aprobada.
+- `npm run typecheck`: tipos del frontend aprobados.
+- `npm run build`: build de producción de Next.js aprobado.
+- Flujo REST: creación, ingreso, inicio, respuestas, cierre y ranking.
+- Concurrencia: registro del máximo de 60 alumnos y rechazo del número 61.
+- WebSocket/STOMP: conexión autenticada, suscripción autorizada y evento recibido.
+- Reconstrucción limpia: backend y frontend reconstruidos desde el contenido del ZIP.
 
-## Cobertura unitaria y de servicio
+## Restricciones del entorno de validación
 
-- cruce en la misma celda y coincidencia exacta de letra;
-- rechazo de tercera palabra, contacto lateral, extremos ocupados y desconexión geométrica;
-- máximo de cruces por longitud y reducción de palabras;
-- normalización de tildes conservando `Ñ`;
-- ranking, tiempos y empates;
-- separación de tokens y DTO del alumno sin soluciones;
-- eliminación tras la tolerancia y reingreso con nuevo jugador;
-- visibilidad de pantalla sin eliminación;
-- alertas de 3 y 1 minuto;
-- cierre por tiempo y por finalización de todos;
-- límite de 60 alumnos;
-- intentos y puntaje calculados por el servidor;
-- fallo de correo sin pérdida del resultado.
+El daemon Docker y un navegador gráfico no estaban disponibles en el entorno de creación. Por eso se verificaron individualmente Dockerfiles, builds, health checks y servicios de integración. El smoke test final con proveedores reales se completa durante el despliegue guiado.
+

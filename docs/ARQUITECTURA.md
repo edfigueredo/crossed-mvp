@@ -1,33 +1,33 @@
-# Arquitectura y decisiones
+# Arquitectura de CrossEd
 
 ## Componentes
 
-- **Frontend:** Next.js + React + TypeScript. Renderiza la matriz aprobada, administra la experiencia responsive y escucha eventos STOMP.
-- **Backend:** Spring Boot 3 sobre Java 21. Monolito modular con capas dentro de cada módulo.
-- **Redis:** estado temporal de partidas, jugadores y progreso; TTL de seis horas.
-- **IA:** Spring AI con OpenAI; un reintento breve y respaldo Gemini mediante API compatible.
-- **Correo:** SMTP asíncrono mediante tarea programada. El error queda registrado y no revierte el cierre.
+```mermaid
+flowchart TD
+  U[Profesor y alumnos] --> F[Next.js]
+  F -->|REST + WSS| B[Spring Boot]
+  B --> R[(Redis)]
+  B --> I[Gemini / OpenAI]
+  B --> E[Brevo HTTPS]
+```
 
-## Autoridad del servidor
+El frontend contiene las vistas de creación, sala, juego y resultados. El backend es autoritativo para permisos, tiempo, respuestas, puntajes y ranking. Redis conserva la partida serializada y permite sobrevivir reinicios del contenedor. STOMP solo distribuye eventos; las mutaciones se realizan por REST.
 
-El navegador envía acciones: registro, heartbeat, visibilidad y respuesta. El servidor decide estado, tiempo, intentos, corrección, puntaje, finalización y ranking.
+## Decisiones principales
 
-## Seguridad
+- Tokens opacos para profesor y alumnos, almacenados mediante hash.
+- DTO de alumno sin soluciones, correos, hashes ni tiempos internos.
+- Código de acceso independiente del identificador interno.
+- Normalización de respuestas compatible con tildes y `Ñ`.
+- Finalización idempotente y cola de estados de correo por destinatario.
+- Brevo por HTTPS para evitar restricciones SMTP del hosting gratuito.
+- Una única instancia del backend en el MVP, compatible con el broker STOMP en memoria.
 
-- tokens aleatorios de 256 bits almacenados como SHA-256;
-- token del profesor distinto de cada token de alumno;
-- canales privados del profesor validados durante la suscripción STOMP;
-- mensajes enviados por WebSocket rechazados: las acciones usan REST;
-- DTO del alumno sin soluciones;
-- CORS configurable;
-- URLs públicas protegidas contra acceso a redes privadas durante extracción;
-- límites para archivos, texto, descargas y mensajes WebSocket;
-- errores públicos sin stack trace ni secretos.
+## Persistencia
 
-## Generación
+Cada modificación relevante guarda la partida en Redis. La clave visible permite resolver el código compartido. El despliegue recomendado utiliza TLS y credenciales de Upstash.
 
-El generador usa una matriz interna 25×25, prueba hasta 100 órdenes determinísticos, evalúa cruces y compacidad y conserva el mayor conjunto válido. El validador independiente rechaza letras distintas, superposición paralela, contactos laterales, terceras palabras, límites excedidos y componentes desconectados. Luego la matriz se recorta.
+## Flujo de correo
 
-## Tiempo real
+Al finalizar una partida se crean envíos pendientes para el profesor y cada alumno. Una tarea programada los procesa. Si existe `BREVO_API_KEY`, usa Brevo; de lo contrario intenta SMTP. Un fallo de correo no revierte ni bloquea el cierre de la actividad y el profesor puede reintentar los envíos.
 
-REST persiste las operaciones. WebSocket/STOMP informa ingresos, desconexiones, visibilidad, inicio, finalización, avisos y jugadores que terminaron. El broker simple es suficiente para una instancia del MVP.

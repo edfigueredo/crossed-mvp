@@ -48,6 +48,9 @@ management:
 crossed:
   origenes: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   mail-from: ${MAIL_FROM:}
+  mail-from-name: ${MAIL_FROM_NAME:CrossEd}
+  brevo-api-key: ${BREVO_API_KEY:}
+  brevo-api-url: ${BREVO_API_URL:https://api.brevo.com/v3/smtp/email}
   ia:
     openai-key: ${OPENAI_API_KEY:}
     gemini-key: ${GEMINI_API_KEY:}

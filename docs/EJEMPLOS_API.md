@@ -1,66 +1,52 @@
 # Ejemplos de API
 
-Definir primero:
+Base local: `http://localhost:8080`.
+
+## Estado
 
 ```bash
-API=http://localhost:8080
+curl http://localhost:8080/actuator/health
 ```
 
-## Salud
+## Crear una partida
 
 ```bash
-curl "$API/actuator/health"
-```
-
-## Generar un tablero sin IA
-
-```bash
-curl -X POST "$API/api/crucigramas/generar" \
+curl -X POST http://localhost:8080/api/partidas \
   -H 'Content-Type: application/json' \
   -d '{
-    "cantidad": 5,
-    "conceptos": [
-      {"palabra":"CONTENEDOR","definicion":"Unidad aislada que ejecuta una aplicación."},
-      {"palabra":"IMAGEN","definicion":"Plantilla inmutable para crear contenedores."},
-      {"palabra":"DOCKER","definicion":"Plataforma para construir y ejecutar contenedores."},
-      {"palabra":"VOLUMEN","definicion":"Conserva datos fuera de la capa escribible."},
-      {"palabra":"PUERTO","definicion":"Punto de comunicación de un servicio."},
-      {"palabra":"RED","definicion":"Comunica contenedores."},
-      {"palabra":"SERVICIO","definicion":"Componente definido en Compose."},
-      {"palabra":"REGISTRO","definicion":"Repositorio de imágenes."}
+    "nombre":"Clase de Docker",
+    "materia":"Tecnología",
+    "nombreProfesor":"Ada",
+    "correoProfesor":"ada@example.com",
+    "idioma":"es",
+    "duracionMinutos":20,
+    "mostrarResultados":true,
+    "intentosPorPalabra":2,
+    "cantidadPalabrasSolicitada":5,
+    "conceptos":[
+      {"palabra":"DOCKER","definicion":"Plataforma de contenedores."},
+      {"palabra":"IMAGEN","definicion":"Plantilla inmutable."},
+      {"palabra":"PUERTO","definicion":"Punto de comunicación."},
+      {"palabra":"VOLUMEN","definicion":"Almacenamiento persistente."},
+      {"palabra":"RED","definicion":"Comunicación entre servicios."}
     ]
   }'
 ```
 
-## Extraer un archivo
+La respuesta incluye `idPartida`, `codigoVisible` y el token del profesor. En las rutas protegidas enviá ese valor en `X-Token`.
 
-```bash
-curl -X POST "$API/api/contenido/archivo" \
-  -F 'archivo=@material.pdf'
-```
+## Operaciones principales
 
-## Leer un enlace público
+| Método | Ruta | Rol |
+| --- | --- | --- |
+| `POST` | `/api/partidas` | Público |
+| `GET` | `/api/partidas/codigo/{codigo}` | Público |
+| `GET` | `/api/partidas/{id}` | Profesor |
+| `POST` | `/api/partidas/{id}/iniciar` | Profesor |
+| `POST` | `/api/partidas/{id}/finalizar` | Profesor |
+| `GET` | `/api/partidas/{id}/ranking` | Profesor |
+| `POST` | `/api/partidas/{id}/jugadores` | Público |
+| `POST` | `/api/partidas/{id}/jugadores/{jid}/respuestas` | Alumno |
 
-```bash
-curl -X POST "$API/api/contenido/enlace" \
-  -H 'Content-Type: application/json' \
-  -d '{"url":"https://ejemplo.org/material-publico"}'
-```
+WebSocket/STOMP se conecta a `/ws`, enviando `X-Token` y `Partida` en el `CONNECT`. Los alumnos se suscriben a `/tema/partida/{id}` y el profesor a `/tema/profesor/{id}`.
 
-## Autorización
-
-Al crear una partida, la respuesta contiene `idPartida`, `codigoVisible` y el token temporal del profesor. Guardar el token solo en la sesión del navegador.
-
-```bash
-curl "$API/api/partidas/ID_PARTIDA" \
-  -H 'X-Token: TOKEN_PROFESOR'
-```
-
-El registro del alumno devuelve su propio `idJugador` y token. La respuesta enviada por el alumno contiene únicamente la acción; el backend calcula el resultado:
-
-```bash
-curl -X POST "$API/api/partidas/ID_PARTIDA/jugadores/ID_JUGADOR/respuestas" \
-  -H 'Content-Type: application/json' \
-  -H 'X-Token: TOKEN_ALUMNO' \
-  -d '{"idPalabra":1,"respuesta":"contenedor"}'
-```
