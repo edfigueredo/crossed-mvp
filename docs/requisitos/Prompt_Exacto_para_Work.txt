@@ -1,0 +1,225 @@
+Quiero que construyas el MVP completo de la aplicación CrossEd tomando como fuente principal y obligatoria el archivo adjunto `CrossEd_SDD_Work_v1.1.md` y utilizando también como referencia los archivos Docker adjuntos.
+
+El SDD debe considerarse la fuente de verdad funcional y técnica del proyecto. No simplifiques reglas, no cambies decisiones de arquitectura y no reemplaces comportamientos definidos en el documento sin justificarlo claramente.
+
+OBJETIVO
+Construir una aplicación web educativa multijugador de crucigramas, con frontend responsive y backend Java, lista para ejecutar localmente, contenerizada con Docker y preparada para un despliegue posterior.
+
+REQUISITOS TÉCNICOS PRINCIPALES
+- Backend: Java 21 LTS.
+- Spring Boot 3.x.
+- Maven.
+- Lombok.
+- Spring Web.
+- Spring Validation.
+- Spring WebSocket + STOMP.
+- Spring AI.
+- Spring Data Redis.
+- Frontend: React / Next.js + TypeScript.
+- Arquitectura: monolito modular con capas dentro de cada módulo.
+- Nombres de clases, métodos, variables y paquetes propios del proyecto en español siempre que sea técnicamente razonable.
+- Inyección con `@Autowired` por campo.
+- Mappers manuales usando Lombok `@Builder`; no MapStruct.
+- Comentarios breves y conceptuales en español.
+- REST para operaciones discretas y WebSocket para notificaciones en tiempo real.
+- Redis para estado temporal; no crear una base persistente de usuarios para el MVP.
+
+FUNCIONALIDAD
+Implementá todo lo definido en el SDD, incluyendo creación de partidas, generación de conceptos mediante IA, generación y validación matricial del crucigrama, edición previa por profesor, registro temporal de alumnos, máximo 60 participantes, juego en tiempo real, ranking, correo, seguridad temporal por tokens, desconexiones, heartbeat, avisos de 3 y 1 minuto, experiencia visual del conejito, mensajes humorísticos, cierre de partida y limpieza de sesión.
+
+IA
+- OpenAI como proveedor principal.
+- Un reintento corto si la primera respuesta falla o no cumple la estructura.
+- Gemini como respaldo si OpenAI sigue fallando.
+- No ejecutar ambos proveedores simultáneamente para la misma solicitud.
+- La IA selecciona conceptos y definiciones; no decide la geometría final.
+
+CRUCIGRAMA
+- Usar matriz interna.
+- Cada intersección debe compartir exactamente la misma letra en una única celda física.
+- Una celda de cruce horizontal + vertical no puede recibir una tercera palabra.
+- No permitir palabras paralelas pegadas, falsos cruces, palabras accidentales o solapamientos inválidos.
+- Todas las palabras deben formar un único componente conectado.
+- Máximo de cruces: 1-4 letras = 1; 5-7 letras = 2; 8 o más = 3.
+- Preferir cruces en segunda, penúltima o última letra de la palabra nueva, sin hacerlo obligatorio.
+- Generar más conceptos candidatos que los solicitados para mejorar las opciones geométricas.
+- Si no se puede usar la cantidad solicitada, reducir gradualmente hasta el máximo válido; mínimo 5 palabras.
+- Antes de aceptar cualquier tablero debe aprobarlo `ValidadorCrucigrama`.
+
+SEGURIDAD
+- Profesor y alumno deben tener tokens temporales distintos.
+- No enviar jamás la palabra correcta al frontend del alumno.
+- El backend es la fuente de verdad para puntaje, intentos, tiempo, progreso y estado.
+- No confiar en puntajes o estados enviados por el navegador.
+- No exponer API keys, claves SMTP, tokens, stack traces ni secretos en logs.
+- Usar variables de entorno para secretos.
+
+DESCONEXIONES
+- Heartbeat aproximado cada 5 segundos.
+- Tolerancia aproximada de 15 segundos.
+- Si un alumno deja de responder, eliminarlo del listado activo y eliminar su progreso.
+- Si vuelve, registrarlo como un jugador nuevo.
+- El tiempo global de la partida no se reinicia.
+- Cambiar de pestaña no elimina al alumno: solo marca `pantallaActiva=false` para la vista del profesor.
+
+TIEMPO
+- El cronómetro es visible solamente para el profesor.
+- Los alumnos no ven tiempo restante.
+- Enviar eventos y avisos cuando falten 3 minutos y 1 minuto.
+- El backend controla `fechaHoraInicio` y `fechaHoraFin`.
+
+DOCKER E INFRAESTRUCTURA
+La aplicación debe quedar contenerizada desde esta primera versión.
+
+Creá y verificá:
+- `backend/Dockerfile` con build multi-stage Maven + Java 21.
+- `backend/.dockerignore`.
+- `frontend/Dockerfile` multi-stage para Next.js.
+- `frontend/.dockerignore`.
+- `docker-compose.yml` en la raíz para levantar frontend, backend y Redis.
+- `.env.example` sin secretos reales.
+- health check del backend, preferentemente mediante Spring Boot Actuator en `/actuator/health`.
+- health check de Redis.
+- volumen local de Redis para desarrollo.
+- CORS configurable por variable de entorno.
+- URL REST y WebSocket del frontend configurables por entorno.
+- `ws://` en local y preparado para `wss://` en producción.
+
+Los archivos Docker adjuntos son referencias. Adaptalos a la estructura real que generes y corregí cualquier detalle necesario para que funcionen de verdad.
+
+El resultado debe poder iniciarse desde la raíz del repositorio con:
+
+`docker compose up --build`
+
+Y debe verificarse que:
+- frontend funcione en `http://localhost:3000`;
+- backend funcione en `http://localhost:8080`;
+- health check responda correctamente;
+- backend se conecte a Redis usando el nombre de servicio de Compose;
+- REST y WebSocket funcionen entre frontend y backend.
+
+DESPLIEGUE FUTURO
+Prepará y documentá el proyecto para una arquitectura inicial de bajo costo:
+- Frontend Next.js: Vercel o servicio equivalente.
+- Backend Docker Spring Boot: Render o servicio equivalente compatible con contenedores y WebSocket.
+- Redis administrado: Upstash o servicio equivalente.
+
+No acoples la lógica de dominio a estos proveedores. La solución debe seguir siendo portable.
+
+NO REALICES TODAVÍA EL DESPLIEGUE PÚBLICO.
+Dejá documentados los pasos de despliegue y detenete antes de publicarlo. El despliegue solo se hará después de mi aprobación explícita.
+
+ESTRUCTURA DE BACKEND
+Mantené los módulos definidos en el SDD, incluyendo al menos:
+- `partida`
+- `jugador`
+- `crucigrama`
+- `ranking`
+- `contenido`
+- `ia`
+- `correo`
+- `tiempo_real`
+- `excepcion`
+
+Dentro de cada módulo respetá la separación controlador, servicio, modelo, dto, mapper, repositorio y componentes específicos cuando corresponda.
+
+PRUEBAS OBLIGATORIAS
+Creá pruebas unitarias y/o de integración que garanticen especialmente:
+- cruce correcto en la misma celda;
+- coincidencia exacta de letras;
+- no reutilización de una intersección;
+- límites de cruces por longitud;
+- ausencia de contactos laterales inválidos;
+- conectividad total del crucigrama;
+- reducción de cantidad de palabras si no puede organizarse la cantidad solicitada;
+- alumno no puede ejecutar operaciones de profesor;
+- respuesta correcta no aparece en payload de alumno;
+- desconexión elimina al jugador luego de la tolerancia;
+- reingreso crea un jugador nuevo;
+- tiempo global no se reinicia;
+- alertas de 3 y 1 minuto;
+- fallo de correo no impide finalizar una partida.
+
+ENTREGABLES
+Quiero que produzcas:
+1. proyecto completo de backend y frontend;
+2. estructura de carpetas final;
+3. `pom.xml` y configuración necesaria;
+4. archivos Docker funcionales;
+5. `docker-compose.yml` funcional;
+6. `.env.example` sin secretos;
+7. README con ejecución tradicional y mediante Docker;
+8. instrucciones para levantar, probar y detener el entorno;
+9. datos/mock para probar funciones sin depender siempre de la IA;
+10. pruebas del generador, validador, ranking, seguridad, tiempo y desconexión;
+11. ejemplos de requests;
+12. documentación de variables de entorno;
+13. sección de README con procedimiento de despliegue futuro;
+14. lista de funcionalidades implementadas;
+15. lista de pendientes, limitaciones o decisiones tomadas.
+
+FORMA DE TRABAJO
+Trabajá internamente por etapas:
+1. verificar SDD y arquitectura;
+2. crear estructura general;
+3. implementar backend;
+4. implementar frontend;
+5. integrar Redis;
+6. integrar WebSocket;
+7. integrar IA y correo;
+8. implementar Docker;
+9. ejecutar pruebas;
+10. levantar el sistema completo con Docker Compose;
+11. corregir errores encontrados;
+12. entregar un informe de estado.
+
+Si encontrás una ambigüedad menor, resolvela de la manera más simple compatible con el SDD y documentá la decisión.
+
+Si encontrás una contradicción importante que requiera modificar una regla funcional, detenete y preguntame antes de realizar ese cambio.
+
+No publiques ni despliegues públicamente la aplicación hasta que yo lo autorice explícitamente.
+
+Al finalizar el desarrollo, entregame el proyecto completo de CrossEd en un único archivo comprimido .zip.
+
+El ZIP debe incluir:
+
+código fuente completo del backend;
+código fuente completo del frontend;
+pom.xml;
+package.json;
+Dockerfile del backend;
+Dockerfile del frontend;
+docker-compose.yml;
+.dockerignore;
+.env.example;
+configuración de Redis;
+pruebas;
+README con instrucciones de ejecución local;
+instrucciones de ejecución con Docker;
+documentación de variables de entorno;
+estructura completa de carpetas.
+
+No incluyas:
+
+node_modules;
+target;
+archivos temporales;
+claves API reales;
+contraseñas;
+secretos.
+
+Antes de comprimir, verificá que el proyecto pueda reconstruirse desde cero siguiendo el README.
+
+El archivo final debe llamarse:
+
+CrossEd_MVP.zip
+
+
+
+Dentro del ZIP incluí un archivo CHECKLIST_ENTREGA.md indicando:
+
+qué funcionalidades están terminadas;
+qué pruebas fueron ejecutadas;
+qué quedó pendiente;
+cómo levantar el proyecto;
+qué variables de entorno debo completar.
